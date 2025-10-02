@@ -11,6 +11,8 @@
     <modules>
         <module>hrpc-annotation</module>
         <module>hrpc-common</module>
+        <module>hrpc-provider</module>
+        <module>hrpc-provider/hrpc-provider-native</module>
     </modules>
 
     <properties>
@@ -20,6 +22,8 @@
         <spring.version>6.2.0</spring.version>
         <log4j.version>1.7.30</log4j.version>
         <junit.version>5.12.2</junit.version>
+        <netty.version>4.2.6.Final</netty.version>
+        <commons-lang.version>3.12.0</commons-lang.version>
     </properties>
 
     <dependencyManagement>
@@ -39,6 +43,17 @@
                 <artifactId>junit-jupiter</artifactId>
                 <version>${junit.version}</version>
                 <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>io.netty</groupId>
+                <artifactId>netty-all</artifactId>
+                <version>${netty.version}</version>
+            </dependency>
+<!--            commons-lang 工具类-->
+            <dependency>
+                <groupId>org.apache.commons</groupId>
+                <artifactId>commons-lang3</artifactId>
+                <version>${commons-lang.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
