@@ -1,0 +1,29 @@
+@startuml
+title RPC 数据流转逻辑
+
+actor "客户端" as client
+participant "编码器\nRpcEncoder" as encoder
+participant "网络传输" as network
+participant "解码器\nRpcDecoder" as decoder
+participant "服务端处理器\nRpcProviderHandler" as handler
+
+client -> encoder : RpcProtocol<Object>
+encoder -> network : ByteBuf
+network -> decoder : ByteBuf
+decoder -> handler : RpcProtocol<RpcRequest>
+handler -> handler : 处理请求并生成响应
+handler --> decoder : RpcProtocol<RpcResponse>
+decoder --> encoder : ByteBuf
+encoder --> client : 调用结果
+
+note right of client
+  1. 客户端通过@RpcReference注入服务
+  2. 调用服务方法时，生成RpcRequest
+  3. RpcEncoder将请求编码为字节流
+  4. 通过网络传输到服务端
+  5. 服务端RpcDecoder解码为RpcRequest
+  6. RpcProviderHandler处理请求
+  7. 响应按相反路径返回给客户端
+end note
+
+@enduml

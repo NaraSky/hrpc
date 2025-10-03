@@ -1,0 +1,103 @@
+@startuml
+title 核心类交互图
+
+class RpcProtocol<T> {
+  - RpcHeader header
+  - T body
+  + getHeader()
+  + setHeader()
+  + getBody()
+  + setBody()
+}
+
+class RpcHeader {
+  - short magic
+  - byte messageType
+  - byte status
+  - long requestId
+  - String serializationType
+  - int messageLength
+}
+
+class RpcRequest {
+  - String className
+  - String methodName
+  - Class<?>[] parameterTypes
+  - Object[] parameters
+  - String version
+  - String group
+}
+
+class RpcResponse {
+  - String error
+  - Object result
+}
+
+class RpcEncoder {
+  + encode(ChannelHandlerContext, RpcProtocol<Object>, ByteBuf)
+}
+
+class RpcDecoder {
+  + decode(ChannelHandlerContext, ByteBuf, List<Object>)
+}
+
+class RpcProviderHandler {
+  + channelRead0(ChannelHandlerContext, RpcProtocol<RpcRequest>)
+}
+
+class Serialization {
+  + serialize(T obj)
+  + deserialize(byte[] data, Class<T> clazz)
+}
+
+class JdkSerialization {
+  + serialize(T obj)
+  + deserialize(byte[] data, Class<T> clazz)
+}
+
+RpcProtocol --> RpcHeader
+RpcProtocol --> RpcRequest
+RpcProtocol --> RpcResponse
+RpcRequest --> RpcMessage
+RpcResponse --> RpcMessage
+
+RpcEncoder --> RpcProtocol
+RpcDecoder --> RpcProtocol
+RpcDecoder --> RpcRequest
+RpcDecoder --> RpcResponse
+
+RpcProviderHandler --> RpcProtocol
+RpcProviderHandler --> RpcRequest
+RpcProviderHandler --> RpcResponse
+
+Serialization <|-- JdkSerialization
+RpcCodec <|-- RpcEncoder
+RpcCodec <|-- RpcDecoder
+RpcEncoder --> Serialization : 使用
+RpcDecoder --> Serialization : 使用
+
+note right of RpcProtocol
+  RPC协议封装类，包含协议头部和数据载荷
+end note
+
+note right of RpcHeader
+  协议头部信息，包含魔数、消息类型、
+  状态码、请求ID、序列化类型和消息长度
+end note
+
+note right of RpcEncoder
+  RPC协议编码器，将RpcProtocol对象
+  编码为字节流
+end note
+
+note right of RpcDecoder
+  RPC协议解码器，将字节流解码为
+  RpcProtocol对象
+end note
+
+note right of RpcProviderHandler
+  RPC服务端处理器，处理客户端请求
+  并生成响应
+end note
+
+@enduml
