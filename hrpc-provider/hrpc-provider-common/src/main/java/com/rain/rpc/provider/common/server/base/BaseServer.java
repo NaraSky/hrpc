@@ -12,8 +12,6 @@ import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
-import io.netty.handler.codec.string.StringDecoder;
-import io.netty.handler.codec.string.StringEncoder;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -43,7 +41,7 @@ public class BaseServer implements Server {
      * 服务处理器映射表
      * 存储服务名称与服务实例的映射关系
      */
-    protected Map<String, Object> handlerMap = new HashMap<>();
+    public Map<String, Object> handlerMap = new HashMap<>();
 
     public BaseServer(String serverAddress) {
         // 检查服务器地址是否有效，避免空指针异常
