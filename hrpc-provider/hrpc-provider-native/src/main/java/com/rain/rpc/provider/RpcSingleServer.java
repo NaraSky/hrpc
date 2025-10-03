@@ -19,9 +19,9 @@ public class RpcSingleServer extends BaseServer {
      * @param serverAddress 服务器地址，格式为 host:port
      * @param scanPackage 服务扫描包路径，用于自动发现和注册带有@RpcService注解的服务
      */
-    public RpcSingleServer(String serverAddress, String scanPackage) {
+    public RpcSingleServer(String serverAddress, String scanPackage, String reflectType) {
         // 调用父类构造方法初始化服务器地址
-        super(serverAddress);
+        super(serverAddress, reflectType);
         try {
             // 扫描指定包路径下带有@RpcService注解的类，并注册为服务
             // 实现了服务的自动发现和注册，简化了服务配置过程

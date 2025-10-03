@@ -36,7 +36,7 @@ public class TestServer {
         LOGGER.info("开始测试服务端启动和方法调用");
 
         // 创建服务端实例
-        BaseServer server = new BaseServer("127.0.0.1:18080");
+        BaseServer server = new BaseServer("127.0.0.1:18080", "cglib");
 
         // 创建服务实现类实例
         HelloServiceImpl helloService = new HelloServiceImpl();

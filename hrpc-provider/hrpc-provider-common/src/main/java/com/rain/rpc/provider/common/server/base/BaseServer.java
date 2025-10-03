@@ -43,13 +43,16 @@ public class BaseServer implements Server {
      */
     public Map<String, Object> handlerMap = new HashMap<>();
 
-    public BaseServer(String serverAddress) {
+    private String reflectType;
+
+    public BaseServer(String serverAddress, String reflectType) {
         // 检查服务器地址是否有效，避免空指针异常
         if (!StringUtils.isEmpty(serverAddress)) {
             String[] serverArray = serverAddress.split(":");
             this.host = serverArray[0];
             this.port = Integer.parseInt(serverArray[1]);
         }
+        this.reflectType = reflectType;
     }
 
     /**
@@ -82,7 +85,7 @@ public class BaseServer implements Server {
                                     .addLast(new RpcDecoder())
                                     .addLast(new RpcEncoder())
                                     // 添加RPC处理器，负责处理客户端请求
-                                    .addLast(new RpcProviderHandler(handlerMap));
+                                    .addLast(new RpcProviderHandler(reflectType, handlerMap));
                         }
                     })
                     // 设置TCP参数，连接缓冲池队列大小为128

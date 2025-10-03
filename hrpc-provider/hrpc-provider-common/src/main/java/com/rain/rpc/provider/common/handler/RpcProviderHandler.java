@@ -2,6 +2,7 @@ package com.rain.rpc.provider.common.handler;
 
 import com.rain.rpc.common.helper.RpcServiceHelper;
 import com.rain.rpc.common.threadpool.ServerThreadPool;
+import com.rain.rpc.constants.RpcConstants;
 import com.rain.rpc.protocol.RpcProtocol;
 import com.rain.rpc.protocol.enumeration.RpcStatus;
 import com.rain.rpc.protocol.enumeration.RpcType;
@@ -13,6 +14,8 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.cglib.reflect.FastClass;
+import org.springframework.cglib.reflect.FastMethod;
 
 import java.lang.reflect.Method;
 import java.util.Map;
@@ -30,8 +33,11 @@ public class RpcProviderHandler extends SimpleChannelInboundHandler<RpcProtocol<
      * key为服务名称，value为服务实例
      */
     private final Map<String, Object> handlerMap;
+    //调用采用哪种类型调用真实方法
+    private final String reflectType;
 
-    public RpcProviderHandler(Map<String, Object> handlerMap) {
+    public RpcProviderHandler(String reflectType, Map<String, Object> handlerMap) {
+        this.reflectType = reflectType;
         this.handlerMap = handlerMap;
     }
 
@@ -156,11 +162,38 @@ public class RpcProviderHandler extends SimpleChannelInboundHandler<RpcProtocol<
      * @throws Throwable 方法调用过程中可能抛出的异常
      */
     private Object invokeMethod(Object serviceInstance, Class<?> serviceClass, String methodName, Class<?>[] parameterTypes, Object[] parameters) throws Throwable {
-        // 通过反射获取要调用的方法
+        switch (this.reflectType) {
+            case RpcConstants.REFLECT_TYPE_JDK -> {
+                return this.invokeJDKMethod(serviceInstance, serviceClass, methodName, parameterTypes, parameters);
+            }
+            case RpcConstants.REFLECT_TYPE_CGLIB -> {
+                return this.invokeCGLIBMethod(serviceInstance, serviceClass, methodName, parameterTypes, parameters);
+            }
+            default -> throw new RuntimeException("Invalid reflect type: " + this.reflectType);
+        }
+    }
+
+    private Object invokeCGLIBMethod(Object serviceInstance, Class<?> serviceClass, String methodName, Class<?>[] parameterTypes, Object[] parameters) throws Throwable {
+        // 记录使用CGLIB方式进行方法调用
+        LOGGER.info("Using CGLIB reflection type to invoke method: {}", methodName);
+        
+        // 使用CGLIB的FastClass机制提高反射性能
+        FastClass serviceFastClass = FastClass.create(serviceClass);
+        FastMethod serviceFastMethod = serviceFastClass.getMethod(methodName, parameterTypes);
+        
+        // 调用目标方法并返回结果
+        return serviceFastMethod.invoke(serviceInstance, parameters);
+    }
+
+    private Object invokeJDKMethod(Object serviceInstance, Class<?> serviceClass, String methodName, Class<?>[] parameterTypes, Object[] parameters) throws Throwable {
+        // 记录使用JDK反射方式进行方法调用
+        LOGGER.info("Using JDK reflection type to invoke method: {}", methodName);
+        
+        // 通过反射获取目标方法
         Method method = serviceClass.getMethod(methodName, parameterTypes);
-        // 设置方法可访问，可以调用私有方法
+        // 设置方法可访问（针对private方法）
         method.setAccessible(true);
-        // 执行方法调用并返回结果
+        // 调用目标方法并返回结果
         return method.invoke(serviceInstance, parameters);
     }
 
