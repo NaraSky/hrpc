@@ -1,5 +1,7 @@
 package com.rain.rpc.provider.common.server.base;
 
+import com.rain.rpc.codec.RpcDecoder;
+import com.rain.rpc.codec.RpcEncoder;
 import com.rain.rpc.provider.common.handler.RpcProviderHandler;
 import com.rain.rpc.provider.common.server.api.Server;
 import io.netty.bootstrap.ServerBootstrap;
@@ -79,8 +81,8 @@ public class BaseServer implements Server {
                             socketChannel.pipeline()
                                     // TODO 预留编解码，需要实现自定义协议
                                     // 当前使用String编解码器仅用于测试，后续需要替换为自定义协议编解码器
-                                    .addLast(new StringDecoder())
-                                    .addLast(new StringEncoder())
+                                    .addLast(new RpcDecoder())
+                                    .addLast(new RpcEncoder())
                                     // 添加RPC处理器，负责处理客户端请求
                                     .addLast(new RpcProviderHandler(handlerMap));
                         }
