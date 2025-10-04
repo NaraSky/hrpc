@@ -10,13 +10,19 @@ hrpc
 ├── hrpc-codec           # 编解码模块，处理RPC协议的编码和解码
 ├── hrpc-common          # 公共模块，包含工具类、异常类、扫描器等
 ├── hrpc-constants       # 常量模块，定义RPC框架中的各种常量
+├── hrpc-consumer        # 服务消费者模块
+│   ├── hrpc-consumer-common   # 消费者公共实现
+│   └── hrpc-consumer-native   # 原生消费者实现
 ├── hrpc-protocol        # 协议模块，定义RPC通信协议和消息格式
 ├── hrpc-provider        # 服务提供者模块
-│   ├── hrpc-provider-common  # 服务提供者公共实现
-│   └── hrpc-provider-native  # 原生服务提供者实现
+│   ├── hrpc-provider-common   # 服务提供者公共实现
+│   └── hrpc-provider-native   # 原生服务提供者实现
+├── hrpc-proxy           # 代理模块
+│   ├── hrpc-proxy-api     # 代理接口定义
+│   └── hrpc-proxy-jdk     # JDK代理实现
 └── hrpc-serialization   # 序列化模块
-    ├── hrpc-serialization-api    # 序列化接口定义
-    └── hrpc-serialization-jdk    # JDK原生序列化实现
+    ├── hrpc-serialization-api     # 序列化接口定义
+    └── hrpc-serialization-jdk     # JDK原生序列化实现
 ```
 
 ## 核心特性
@@ -76,6 +82,12 @@ hrpc
 - 序列化类型常量
 - 注册中心类型常量
 
+### hrpc-consumer
+服务消费者实现：
+- `RpcConsumer`：RPC消费者，管理与服务提供者的连接
+- `RpcConsumerHandler`：消费者消息处理器
+- `RpcClient`：客户端入口，提供创建代理对象的接口
+
 ### hrpc-protocol
 定义RPC协议相关类：
 - `RpcProtocol`：RPC协议封装类
@@ -90,6 +102,13 @@ hrpc
 - `BaseServer`：基础服务端实现
 - `RpcProviderHandler`：服务端消息处理器
 - `RpcSingleServer`：单机版服务端
+
+### hrpc-proxy
+代理模块：
+- `ProxyFactory`：代理工厂接口
+- `JdkProxyFactory`：JDK动态代理工厂实现
+- `ObjectProxy`：对象代理，处理代理对象的方法调用
+- `RPCFuture`：异步调用结果封装
 
 ### hrpc-serialization
 序列化模块：
