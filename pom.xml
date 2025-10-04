@@ -12,7 +12,6 @@
         <module>hrpc-annotation</module>
         <module>hrpc-common</module>
         <module>hrpc-provider</module>
-        <module>hrpc-provider/hrpc-provider-native</module>
         <module>hrpc-protocol</module>
         <module>hrpc-constants</module>
         <module>hrpc-codec</module>
