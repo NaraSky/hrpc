@@ -4,6 +4,9 @@ import com.rain.rpc.codec.RpcDecoder;
 import com.rain.rpc.codec.RpcEncoder;
 import com.rain.rpc.provider.common.handler.RpcProviderHandler;
 import com.rain.rpc.provider.common.server.api.Server;
+import com.rain.rpc.registry.api.RegistryService;
+import com.rain.rpc.registry.api.config.RegistryConfig;
+import com.rain.rpc.registry.zookeeper.ZookeeperRegistryService;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelInitializer;
@@ -26,17 +29,17 @@ import java.util.Map;
 public class BaseServer implements Server {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(BaseServer.class);
-    
+
     /**
      * 服务器主机地址
      */
     protected String host = "127.0.0.1";
-    
+
     /**
      * 服务器端口号
      */
     protected int port = 27110;
-    
+
     /**
      * 服务处理器映射表
      * 存储服务名称与服务实例的映射关系
@@ -45,14 +48,44 @@ public class BaseServer implements Server {
 
     private String reflectType;
 
-    public BaseServer(String serverAddress, String reflectType) {
-        // 检查服务器地址是否有效，避免空指针异常
+    protected RegistryService registryService;
+
+    /**
+     * 构造函数，初始化服务器配置
+     * 
+     * @param serverAddress 服务器地址，格式为 host:port
+     * @param registryAddress 注册中心地址
+     * @param registryType 注册中心类型
+     * @param reflectType 反射类型
+     */
+    public BaseServer(String serverAddress, String registryAddress, String registryType, String reflectType) {
         if (!StringUtils.isEmpty(serverAddress)) {
             String[] serverArray = serverAddress.split(":");
             this.host = serverArray[0];
             this.port = Integer.parseInt(serverArray[1]);
         }
         this.reflectType = reflectType;
+        this.registryService = this.getRegistryService(registryAddress, registryType);
+    }
+
+    /**
+     * 获取注册中心服务实例
+     * 目前仅支持Zookeeper注册中心
+     * 
+     * @param registryAddress 注册中心地址
+     * @param registryType 注册中心类型
+     * @return 注册中心服务实例
+     */
+    private RegistryService getRegistryService(String registryAddress, String registryType) {
+        //TODO 后续扩展支持SPI
+        RegistryService registryService = null;
+        try {
+            registryService = new ZookeeperRegistryService();
+            registryService.init(new RegistryConfig(registryAddress, registryType));
+        } catch (Exception e) {
+            LOGGER.error("RPC Server init error", e);
+        }
+        return registryService;
     }
 
     /**
@@ -68,7 +101,7 @@ public class BaseServer implements Server {
         // 从线程组，用于处理与已连接客户端的交互
         // 负责处理已建立连接的客户端的读写操作
         EventLoopGroup workerGroup = new NioEventLoopGroup();
-        
+
         try {
             // 创建服务端启动引导类
             ServerBootstrap bootstrap = new ServerBootstrap();
@@ -94,7 +127,7 @@ public class BaseServer implements Server {
                     // 启用TCP Keep-Alive机制
                     // 检测连接是否有效，及时释放无效连接资源
                     .childOption(ChannelOption.SO_KEEPALIVE, true);
-                    
+
             // 绑定端口并同步等待，确保服务成功启动
             ChannelFuture future = bootstrap.bind(host, port).sync();
             LOGGER.info("Server started on {}:{}", host, port);
