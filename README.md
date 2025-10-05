@@ -20,10 +20,14 @@ hrpc
 ├── hrpc-proxy           # 代理模块
 │   ├── hrpc-proxy-api     # 代理接口定义
 │   └── hrpc-proxy-jdk     # JDK代理实现
+├── hrpc-registry        # 注册中心模块
+│   ├── hrpc-registry-api      # 注册中心接口定义
+│   └── hrpc-registry-zookeeper# Zookeeper注册中心实现
 └── hrpc-serialization   # 序列化模块
     ├── hrpc-serialization-api     # 序列化接口定义
     └── hrpc-serialization-jdk     # JDK原生序列化实现
 ```
+
 
 ## 核心特性
 
@@ -54,6 +58,18 @@ hrpc
 
 ### 5. Netty通信
 基于Netty的高性能NIO通信框架，支持高并发连接
+
+### 6. 服务注册与发现
+- 基于Zookeeper的服务注册与发现
+- 支持服务分组和版本管理
+
+### 7. 负载均衡
+- 一致性Hash负载均衡策略
+
+### 8. 异步调用支持
+- 同步调用
+- 异步调用
+- 单向调用（Oneway）
 
 ## 模块详解
 
@@ -110,22 +126,24 @@ hrpc
 - `ObjectProxy`：对象代理，处理代理对象的方法调用
 - `RPCFuture`：异步调用结果封装
 
-### hrpc-serialization
-序列化模块：
-- `Serialization`：序列化接口
-- `JdkSerialization`：JDK原生序列化实现
+### hrpc-registry
+注册中心模块，实现服务的注册与发现：
+- `RegistryService`：注册服务接口
+- `ZookeeperRegistryService`：基于Zookeeper的注册服务实现
+- 支持服务分组和版本管理
+- 提供服务发现和负载均衡支持
 
 ## 使用示例
 
 ### 1. 定义服务接口
-```java
+``java
 public interface HelloService {
     String sayHello(String name);
 }
 ```
 
 ### 2. 实现服务提供者
-```java
+``java
 @RpcService(interfaceClass = HelloService.class, version = "1.0.0", group = "default")
 public class HelloServiceImpl implements HelloService {
     @Override
@@ -136,44 +154,106 @@ public class HelloServiceImpl implements HelloService {
 ```
 
 ### 3. 启动服务提供者
-```java
+``java
 public class Server {
     public static void main(String[] args) {
-        BaseServer server = new BaseServer("127.0.0.1:27880", "jdk");
-        // 注册服务...
-        server.startNettyServer();
+        RpcSingleServer server = new RpcSingleServer("127.0.0.1", 27880, "zookeeper", "127.0.0.1:2181");
+        server.scanServiceAndRegister("com.example.service.impl");
+        server.start();
     }
 }
 ```
 
 ### 4. 服务消费者引用
-```java
+``java
 public class Client {
-    @RpcReference(version = "1.0.0", group = "default")
-    private HelloService helloService;
-    
-    public void callRemoteService() {
+    public static void main(String[] args) {
+        RpcClient client = new RpcClient("127.0.0.1:2181", "zookeeper", "1.0.0", "default", "jdk", 5000, false, false);
+        HelloService helloService = client.create(HelloService.class);
         String result = helloService.sayHello("World");
         System.out.println(result);
+        client.shutdown();
     }
 }
 ```
 
+## 日志配置
+
+框架使用Log4j作为日志框架，默认日志配置如下：
+
+```
+log4j.rootLogger=INFO, console, file
+
+log4j.logger.com.rain.rpc=DEBUG
+log4j.logger.com.rain.rpc.common.scanner=DEBUG
+
+log4j.appender.console=org.apache.log4j.ConsoleAppender
+log4j.appender.console.Target=System.out
+log4j.appender.console.layout=org.apache.log4j.PatternLayout
+log4j.appender.console.layout.ConversionPattern=%d{yyyy-MM-dd HH:mm:ss.SSS} [%t] %-5p %c{1}:%L - %m%n
+
+log4j.appender.file=org.apache.log4j.DailyRollingFileAppender
+log4j.appender.file.File=logs/hrpc.log
+log4j.appender.file.DatePattern='.'yyyy-MM-dd
+log4j.appender.file.layout=org.apache.log4j.PatternLayout
+log4j.appender.file.layout.ConversionPattern=%d{yyyy-MM-dd HH:mm:ss.SSS} [%t] %-5p %c{1}:%L - %m%n
+```
+
+日志级别说明：
+- ROOT级别为INFO，输出到控制台和文件
+- com.rain.rpc包下的日志级别为DEBUG，便于调试
+- 日志文件按天滚动，存储在logs目录下
+- 错误日志单独存储在hrpc-error.log文件中
+
+## 环境要求
+
+- JDK 21+
+- Maven 3.6+
+- Zookeeper 3.8+（用于服务注册与发现）
+- IDE推荐使用IntelliJ IDEA
+
+## 项目构建
+
+```bash
+# 克隆项目
+git clone <项目地址>
+
+# 进入项目目录
+cd hrpc
+
+# 使用Maven构建项目
+mvn clean install
+```
+
+## 技术栈
+
+- 核心框架：Java 21
+- 网络通信：Netty 4.2.6.Final
+- 序列化：JDK原生序列化
+- 日志框架：SLF4J + Log4j
+- 注册中心：Apache Curator (Zookeeper)
+- JSON处理：Fastjson 2.0.28
+- 工具类：Apache Commons Lang3
+- 单元测试：JUnit 5
+- 依赖注入：Spring Context 6.2.0
+
 ## 数据流转图
 
-![数据流转图](data-flow.png)
+![数据流转图](docx/data-flow.png)
 
 ## 核心类交互图
 
-![核心类交互图](core-classes-interaction.png)
+![核心类交互图](docx/core-classes-interaction.png)
 
 ## 后续计划
 
-1. 实现服务注册与发现（Zookeeper、Nacos等）
-2. 添加更多序列化方式支持
-3. 实现负载均衡策略
-4. 添加服务监控和管理功能
-5. 提供Spring Boot Starter简化使用
+1. 添加更多序列化方式支持（Protostuff、Kryo、Hessian等）
+2. 实现更多负载均衡策略
+3. 添加服务监控和管理功能
+4. 提供Spring Boot Starter简化使用
+5. 实现更多注册中心支持（Nacos、Etcd等）
+6. 添加服务熔断和降级机制
+7. 实现服务限流功能
 
 ## 许可证
 
