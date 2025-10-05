@@ -24,6 +24,11 @@
             <artifactId>hrpc-protocol</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <dependency>
+            <groupId>com.rain.rpc.registry.api</groupId>
+            <artifactId>hrpc-registry-api</artifactId>
+            <version>${project.version}</version>
+        </dependency>
     </dependencies>
 
 </project>

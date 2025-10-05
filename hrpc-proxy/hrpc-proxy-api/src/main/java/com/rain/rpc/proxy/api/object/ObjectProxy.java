@@ -6,6 +6,7 @@ import com.rain.rpc.protocol.request.RpcRequest;
 import com.rain.rpc.proxy.api.async.IAsyncObjectProxy;
 import com.rain.rpc.proxy.api.consumer.Consumer;
 import com.rain.rpc.proxy.api.future.RPCFuture;
+import com.rain.rpc.registry.api.RegistryService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -43,6 +44,10 @@ public class ObjectProxy<T> implements IAsyncObjectProxy, InvocationHandler {
      */
     private long timeout = 15000;
     /**
+     * 注册服务
+     */
+    private RegistryService registryService;
+    /**
      * 消费者实例，用于发送请求
      */
     private Consumer consumer;
@@ -71,6 +76,7 @@ public class ObjectProxy<T> implements IAsyncObjectProxy, InvocationHandler {
      * @param serviceGroup 服务分组
      * @param serializationType 序列化类型
      * @param timeout 超时时间
+     * @param registryService 注册服务
      * @param consumer 消费者
      * @param async 是否异步调用
      * @param oneWay 是否单向调用
@@ -81,6 +87,7 @@ public class ObjectProxy<T> implements IAsyncObjectProxy, InvocationHandler {
             String serviceGroup,
             String serializationType,
             long timeout,
+            RegistryService registryService,
             Consumer consumer,
             boolean async,
             boolean oneWay) {
@@ -92,6 +99,7 @@ public class ObjectProxy<T> implements IAsyncObjectProxy, InvocationHandler {
         this.serializationType = serializationType;
         this.async = async;
         this.oneWay = oneWay;
+        this.registryService = registryService;
     }
 
 
@@ -139,23 +147,24 @@ public class ObjectProxy<T> implements IAsyncObjectProxy, InvocationHandler {
         requestRpcProtocol.setBody(request);
 
         // 记录调试日志
-        LOGGER.debug(method.getDeclaringClass().getName());
-        LOGGER.debug(method.getName());
+        if (LOGGER.isDebugEnabled()) {
+            LOGGER.debug("Invoking method: {}#{}", method.getDeclaringClass().getName(), method.getName());
 
-        if (method.getParameterTypes() != null && method.getParameterTypes().length > 0) {
-            for (int i = 0; i < method.getParameterTypes().length; ++i) {
-                LOGGER.debug(method.getParameterTypes()[i].getName());
+            if (method.getParameterTypes() != null && method.getParameterTypes().length > 0) {
+                for (int i = 0; i < method.getParameterTypes().length; ++i) {
+                    LOGGER.debug("Parameter type {}: {}", i, method.getParameterTypes()[i].getName());
+                }
             }
-        }
 
-        if (args != null && args.length > 0) {
-            for (int i = 0; i < args.length; ++i) {
-                LOGGER.debug(args[i].toString());
+            if (args != null && args.length > 0) {
+                for (int i = 0; i < args.length; ++i) {
+                    LOGGER.debug("Parameter value {}: {}", i, args[i]);
+                }
             }
         }
 
         // 发送请求并获取结果
-        RPCFuture rpcFuture = this.consumer.sendRequest(requestRpcProtocol);
+        RPCFuture rpcFuture = this.consumer.sendRequest(requestRpcProtocol, registryService);
         return rpcFuture == null ? null : timeout > 0 ? rpcFuture.get(timeout, TimeUnit.MILLISECONDS) : rpcFuture.get();
     }
 
@@ -171,9 +180,9 @@ public class ObjectProxy<T> implements IAsyncObjectProxy, InvocationHandler {
         RpcProtocol<RpcRequest> request = createRequest(this.clazz.getName(), funcName, args);
         RPCFuture rpcFuture = null;
         try {
-            rpcFuture = this.consumer.sendRequest(request);
+            rpcFuture = this.consumer.sendRequest(request, registryService);
         } catch (Exception e) {
-            LOGGER.error("async all throws exception:{}", e);
+            LOGGER.error("Async call method {} throws exception", funcName, e);
         }
         return rpcFuture;
     }
@@ -207,13 +216,14 @@ public class ObjectProxy<T> implements IAsyncObjectProxy, InvocationHandler {
         request.setParameterTypes(parameterTypes);
         requestRpcProtocol.setBody(request);
 
-        LOGGER.debug(className);
-        LOGGER.debug(methodName);
-        for (int i = 0; i < parameterTypes.length; ++i) {
-            LOGGER.debug(parameterTypes[i].getName());
-        }
-        for (int i = 0; i < args.length; ++i) {
-            LOGGER.debug(args[i].toString());
+        if (LOGGER.isDebugEnabled()) {
+            LOGGER.debug("Creating request for method: {}#{}", className, methodName);
+            for (int i = 0; i < parameterTypes.length; ++i) {
+                LOGGER.debug("Parameter type {}: {}", i, parameterTypes[i].getName());
+            }
+            for (int i = 0; i < args.length; ++i) {
+                LOGGER.debug("Parameter value {}: {}", i, args[i]);
+            }
         }
 
         return requestRpcProtocol;
